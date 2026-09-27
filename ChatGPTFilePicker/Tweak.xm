@@ -1,82 +1,86 @@
 #import <UIKit/UIKit.h>
-#import <objc/runtime.h>
+#import <WebKit/WebKit.h>
 
-@interface WKFileUploadPanel : NSObject
-- (void)_showDocumentPickerMenu;
-- (void)_showMediaSourceSelectionSheet;
-- (void)_showFilePickerMenu;
-- (void)_showPhotoPickerWithSourceType:(NSInteger)sourceType;
-@end
+static NSString *CGFPJavaScript(void) {
+    return
+    @"(function() {"
+    "  if (window.__CGFPInstalled) return;"
+    "  window.__CGFPInstalled = true;"
 
-static BOOL CGFPPhotoLibraryAvailable(void) {
-    return [UIImagePickerController isSourceTypeAvailable:
-            UIImagePickerControllerSourceTypePhotoLibrary];
+    "  function isChatGPT() {"
+    "    var h = location.hostname;"
+    "    return h === 'chatgpt.com' ||"
+    "           h.indexOf('.chatgpt.com') !== -1 ||"
+    "           h === 'chat.openai.com' ||"
+    "           h.indexOf('.chat.openai.com') !== -1;"
+    "  }"
+
+    "  function findUploadInput() {"
+    "    return document.querySelector('#upload-files') ||"
+    "           document.querySelector('#upload-photos') ||"
+    "           document.querySelector('input[type=file]');"
+    "  }"
+
+    "  function isAttachButton(element) {"
+    "    var el = element;"
+
+    "    while (el && el !== document) {"
+    "      if (el.getAttribute) {"
+    "        var testid = el.getAttribute('data-testid');"
+    "        var aria = el.getAttribute('aria-label');"
+    "        var role = el.getAttribute('role');"
+    "        var text = (el.textContent || '').trim();"
+
+    "        if (testid === 'composer-plus-btn') return true;"
+    "        if (aria === 'Add files and more') return true;"
+
+    "        if (role === 'menuitem' &&"
+    "            (/Add photos/i.test(text) || /files/i.test(text)))"
+    "          return true;"
+    "      }"
+
+    "      el = el.parentNode;"
+    "    }"
+
+    "    return false;"
+    "  }"
+
+    "  document.addEventListener('click', function(event) {"
+    "    if (!isChatGPT()) return;"
+    "    if (!isAttachButton(event.target)) return;"
+
+    "    var input = findUploadInput();"
+    "    if (!input) return;"
+
+    "    event.preventDefault();"
+    "    event.stopPropagation();"
+
+    "    try {"
+    "      event.stopImmediatePropagation();"
+    "    } catch (e) {}"
+
+    "    input.click();"
+    "  }, true);"
+    "})();";
 }
 
-%hook WKFileUploadPanel
+%hook WKWebView
 
-- (void)_showDocumentPickerMenu {
-    NSLog(@"[ChatGPTFilePicker] _showDocumentPickerMenu");
+- (instancetype)initWithFrame:(CGRect)frame
+                 configuration:(WKWebViewConfiguration *)configuration
+{
+    WKUserContentController *controller =
+        configuration.userContentController;
 
-    if (CGFPPhotoLibraryAvailable() &&
-        [self respondsToSelector:@selector(_showPhotoPickerWithSourceType:)]) {
+    WKUserScript *script =
+        [[WKUserScript alloc]
+            initWithSource:CGFPJavaScript()
+            injectionTime:WKUserScriptInjectionTimeAtDocumentEnd
+            forMainFrameOnly:YES];
 
-        [self _showPhotoPickerWithSourceType:
-              UIImagePickerControllerSourceTypePhotoLibrary];
-        return;
-    }
+    [controller addUserScript:script];
 
-    %orig;
-}
-
-- (void)_showMediaSourceSelectionSheet {
-    NSLog(@"[ChatGPTFilePicker] _showMediaSourceSelectionSheet");
-
-    if (CGFPPhotoLibraryAvailable() &&
-        [self respondsToSelector:@selector(_showPhotoPickerWithSourceType:)]) {
-
-        [self _showPhotoPickerWithSourceType:
-              UIImagePickerControllerSourceTypePhotoLibrary];
-        return;
-    }
-
-    %orig;
-}
-
-- (void)_showFilePickerMenu {
-    NSLog(@"[ChatGPTFilePicker] _showFilePickerMenu");
-
-    if (CGFPPhotoLibraryAvailable() &&
-        [self respondsToSelector:@selector(_showPhotoPickerWithSourceType:)]) {
-
-        [self _showPhotoPickerWithSourceType:
-              UIImagePickerControllerSourceTypePhotoLibrary];
-        return;
-    }
-
-    %orig;
+    return %orig(frame, configuration);
 }
 
 %end
-
-%ctor {
-    NSString *bundleID = [[NSBundle mainBundle] bundleIdentifier];
-
-    if (![bundleID isEqualToString:@"com.apple.mobilesafari"])
-        return;
-
-    NSOperatingSystemVersion v =
-        [NSProcessInfo processInfo].operatingSystemVersion;
-
-    if (v.majorVersion != 12)
-        return;
-
-    Class cls = objc_getClass("WKFileUploadPanel");
-
-    if (!cls)
-        return;
-
-    %init(WKFileUploadPanel = cls);
-
-    NSLog(@"[ChatGPTFilePicker] Loaded into MobileSafari");
-}
