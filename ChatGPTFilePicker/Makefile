@@ -7,7 +7,7 @@ TWEAK_NAME := ChatGPTFilePicker
 
 ChatGPTFilePicker_FILES := Tweak.xm
 ChatGPTFilePicker_CFLAGS := -fobjc-arc
-ChatGPTFilePicker_FRAMEWORKS := UIKit
+ChatGPTFilePicker_FRAMEWORKS := UIKit WebKit
 
 INSTALL_TARGET_PROCESSES := MobileSafari
 
