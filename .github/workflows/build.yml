@@ -19,17 +19,18 @@ jobs:
           sdks-src: 'theos/sdks'
           sdks-branch: 'master'
 
-      - name: Fix old SDK module map
+      - name: Fix legacy SDK module map
+        shell: bash
         run: |
-          cp theos/sdks/iPhoneOS12.4.sdk/usr/include/mach-o/module.map \
-             theos/sdks/iPhoneOS12.4.sdk/usr/include/mach-o/module.modulemap
+          shopt -s nullglob
+          for module_map in "$THEOS"/sdks/*/usr/include/mach-o/module.map; do
+            mv "$module_map" "${module_map%.map}.modulemap"
+          done
 
       - name: Build
         run: |
           cd ChatGPTFilePicker
-          make clean package FINALPACKAGE=1 \
-            ADDITIONAL_CFLAGS="-Wno-error=deprecated-module-dot-map" \
-            ADDITIONAL_OBJCFLAGS="-Wno-error=deprecated-module-dot-map"
+          make clean package FINALPACKAGE=1
 
       - name: Upload DEB
         uses: actions/upload-artifact@v4
