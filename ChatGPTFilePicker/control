@@ -1,7 +1,7 @@
 Package: com.fatihkg.chatgptfilepicker
 Name: ChatGPT File Picker Fix
 Version: 0.1.0
-Architecture: iphoneos-arm64
+Architecture: iphoneos-arm
 Description: Attempts to route legacy iOS 12 WebKit file uploads to its photo-library picker in MobileSafari.
 Maintainer: Fatih KGL
 Author: Fatih KGL
