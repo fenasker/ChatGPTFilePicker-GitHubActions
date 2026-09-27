@@ -1,8 +1,8 @@
 Package: com.fatihkg.chatgptfilepicker
 Name: ChatGPT File Picker Fix
-Version: 0.2.0
+Version: 0.3.0
 Architecture: iphoneos-arm
-Description: Enables the ChatGPT web file picker in legacy MobileSafari.
+Description: Enables the ChatGPT web media file picker on legacy MobileSafari.
 Maintainer: Fatih KGL
 Author: Fatih KGL
 Section: Tweaks
