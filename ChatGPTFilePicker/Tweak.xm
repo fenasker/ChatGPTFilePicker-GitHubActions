@@ -9,19 +9,20 @@
 @end
 
 static BOOL CGFPPhotoLibraryAvailable(void) {
-    return [UIImagePickerController isSourceTypeAvailable:UIImagePickerControllerSourceTypePhotoLibrary];
+    return [UIImagePickerController isSourceTypeAvailable:
+            UIImagePickerControllerSourceTypePhotoLibrary];
 }
 
 %hook WKFileUploadPanel
 
 - (void)_showDocumentPickerMenu {
+    NSLog(@"[ChatGPTFilePicker] _showDocumentPickerMenu");
+
     if (CGFPPhotoLibraryAvailable() &&
         [self respondsToSelector:@selector(_showPhotoPickerWithSourceType:)]) {
 
-        NSLog(@"[ChatGPTFilePicker] _showDocumentPickerMenu -> Photo Library");
-
         [self _showPhotoPickerWithSourceType:
-            UIImagePickerControllerSourceTypePhotoLibrary];
+              UIImagePickerControllerSourceTypePhotoLibrary];
         return;
     }
 
@@ -29,13 +30,13 @@ static BOOL CGFPPhotoLibraryAvailable(void) {
 }
 
 - (void)_showMediaSourceSelectionSheet {
+    NSLog(@"[ChatGPTFilePicker] _showMediaSourceSelectionSheet");
+
     if (CGFPPhotoLibraryAvailable() &&
         [self respondsToSelector:@selector(_showPhotoPickerWithSourceType:)]) {
 
-        NSLog(@"[ChatGPTFilePicker] _showMediaSourceSelectionSheet -> Photo Library");
-
         [self _showPhotoPickerWithSourceType:
-            UIImagePickerControllerSourceTypePhotoLibrary];
+              UIImagePickerControllerSourceTypePhotoLibrary];
         return;
     }
 
@@ -43,13 +44,13 @@ static BOOL CGFPPhotoLibraryAvailable(void) {
 }
 
 - (void)_showFilePickerMenu {
+    NSLog(@"[ChatGPTFilePicker] _showFilePickerMenu");
+
     if (CGFPPhotoLibraryAvailable() &&
         [self respondsToSelector:@selector(_showPhotoPickerWithSourceType:)]) {
 
-        NSLog(@"[ChatGPTFilePicker] _showFilePickerMenu -> Photo Library");
-
         [self _showPhotoPickerWithSourceType:
-            UIImagePickerControllerSourceTypePhotoLibrary];
+              UIImagePickerControllerSourceTypePhotoLibrary];
         return;
     }
 
@@ -70,10 +71,12 @@ static BOOL CGFPPhotoLibraryAvailable(void) {
     if (v.majorVersion != 12)
         return;
 
-    if (objc_getClass("WKFileUploadPanel") == Nil)
+    Class cls = objc_getClass("WKFileUploadPanel");
+
+    if (!cls)
         return;
 
-    %init(WKFileUploadPanel = objc_getClass("WKFileUploadPanel"));
+    %init(WKFileUploadPanel = cls);
 
     NSLog(@"[ChatGPTFilePicker] Loaded into MobileSafari");
 }
