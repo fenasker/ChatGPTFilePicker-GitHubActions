@@ -1,12 +1,11 @@
 #import <UIKit/UIKit.h>
 #import <objc/runtime.h>
 
-// Private WebKit class used by iOS-era WebKit for HTML <input type="file"> uploads.
-// This tweak intentionally avoids public API dependencies beyond UIKit.
 @interface WKFileUploadPanel : NSObject
 - (void)_showDocumentPickerMenu;
 - (void)_showMediaSourceSelectionSheet;
-- (void)_showPhotoPickerWithSourceType:(UIImagePickerControllerSourceType)sourceType;
+- (void)_showFilePickerMenu;
+- (void)_showPhotoPickerWithSourceType:(NSInteger)sourceType;
 @end
 
 static BOOL CGFPPhotoLibraryAvailable(void) {
@@ -16,11 +15,13 @@ static BOOL CGFPPhotoLibraryAvailable(void) {
 %hook WKFileUploadPanel
 
 - (void)_showDocumentPickerMenu {
-    SEL photoSEL = @selector(_showPhotoPickerWithSourceType:);
+    if (CGFPPhotoLibraryAvailable() &&
+        [self respondsToSelector:@selector(_showPhotoPickerWithSourceType:)]) {
 
-    if ([self respondsToSelector:photoSEL] && CGFPPhotoLibraryAvailable()) {
-        NSLog(@"[ChatGPTFilePicker] Forcing WebKit photo library picker");
-        [(WKFileUploadPanel *)self _showPhotoPickerWithSourceType:UIImagePickerControllerSourceTypePhotoLibrary];
+        NSLog(@"[ChatGPTFilePicker] _showDocumentPickerMenu -> Photo Library");
+
+        [self _showPhotoPickerWithSourceType:
+            UIImagePickerControllerSourceTypePhotoLibrary];
         return;
     }
 
@@ -28,11 +29,27 @@ static BOOL CGFPPhotoLibraryAvailable(void) {
 }
 
 - (void)_showMediaSourceSelectionSheet {
-    SEL photoSEL = @selector(_showPhotoPickerWithSourceType:);
+    if (CGFPPhotoLibraryAvailable() &&
+        [self respondsToSelector:@selector(_showPhotoPickerWithSourceType:)]) {
 
-    if ([self respondsToSelector:photoSEL] && CGFPPhotoLibraryAvailable()) {
-        NSLog(@"[ChatGPTFilePicker] Forcing WebKit photo library picker from media sheet");
-        [(WKFileUploadPanel *)self _showPhotoPickerWithSourceType:UIImagePickerControllerSourceTypePhotoLibrary];
+        NSLog(@"[ChatGPTFilePicker] _showMediaSourceSelectionSheet -> Photo Library");
+
+        [self _showPhotoPickerWithSourceType:
+            UIImagePickerControllerSourceTypePhotoLibrary];
+        return;
+    }
+
+    %orig;
+}
+
+- (void)_showFilePickerMenu {
+    if (CGFPPhotoLibraryAvailable() &&
+        [self respondsToSelector:@selector(_showPhotoPickerWithSourceType:)]) {
+
+        NSLog(@"[ChatGPTFilePicker] _showFilePickerMenu -> Photo Library");
+
+        [self _showPhotoPickerWithSourceType:
+            UIImagePickerControllerSourceTypePhotoLibrary];
         return;
     }
 
@@ -42,12 +59,14 @@ static BOOL CGFPPhotoLibraryAvailable(void) {
 %end
 
 %ctor {
-    // Only load into MobileSafari on iOS 12.x.
     NSString *bundleID = [[NSBundle mainBundle] bundleIdentifier];
+
     if (![bundleID isEqualToString:@"com.apple.mobilesafari"])
         return;
 
-    NSOperatingSystemVersion v = [NSProcessInfo processInfo].operatingSystemVersion;
+    NSOperatingSystemVersion v =
+        [NSProcessInfo processInfo].operatingSystemVersion;
+
     if (v.majorVersion != 12)
         return;
 
@@ -55,4 +74,6 @@ static BOOL CGFPPhotoLibraryAvailable(void) {
         return;
 
     %init(WKFileUploadPanel = objc_getClass("WKFileUploadPanel"));
+
+    NSLog(@"[ChatGPTFilePicker] Loaded into MobileSafari");
 }
