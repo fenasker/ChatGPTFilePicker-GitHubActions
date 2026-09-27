@@ -1,0 +1,31 @@
+name: Build iOS 12 Tweak
+
+on:
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: macos-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Theos
+        uses: waruhachi/theos-action@v2.6.3
+        with:
+          theos-src: 'theos/theos'
+          theos-branch: 'master'
+          sdks-src: 'theos/sdks'
+          sdks-branch: 'master'
+
+      - name: Build
+        run: |
+          cd ChatGPTFilePicker
+          make clean package FINALPACKAGE=1
+
+      - name: Upload DEB
+        uses: actions/upload-artifact@v4
+        with:
+          name: ChatGPTFilePicker-deb
+          path: ChatGPTFilePicker/packages/*.deb
